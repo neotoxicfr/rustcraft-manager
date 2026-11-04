@@ -1,0 +1,5 @@
+# Interface WebAssembly : composants Leptos « effacés » (types des vues remplacés par des vues
+# dynamiques aux frontières des composants). Mesuré le 20/10/2026 (docs/perf.md) : wasm de
+# 1 543 621 à 1 238 227 octets, 538 005 à 415 345 en gzip -9 (-23 %), même comportement.
+[target.wasm32-unknown-unknown]
+rustflags = ["--cfg", "erase_components"]

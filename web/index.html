@@ -1,0 +1,41 @@
+<!doctype html>
+<html lang="fr">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+    <meta name="color-scheme" content="light dark" />
+    <!-- Couleur de la barre d'état = fond du thème (--bg) ; l'interface la réécrit selon le thème du
+         compte (theme::apply). -->
+    <meta name="theme-color" content="#f5f5f3" media="(prefers-color-scheme: light)" />
+    <meta name="theme-color" content="#0b0d10" media="(prefers-color-scheme: dark)" />
+    <!-- Appli installée sur iOS : barre d'état OPAQUE (`default`). Sous une barre translucide,
+         iOS 26+ floute tout ce qui défile, sans interrupteur. Lu à
+         l'installation : retirer l'appli de l'écran d'accueil et la rajouter après un changement.
+         iOS prend le nom de l'icône ici, pas dans le manifeste. -->
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="default" />
+    <meta name="apple-mobile-web-app-title" content="Rustcraft" />
+    <title>Rustcraft Manager</title>
+    <link rel="manifest" href="/manifest.webmanifest" />
+    <link rel="icon" href="/icon.svg" type="image/svg+xml" />
+    <link rel="apple-touch-icon" href="/icon-192.png" />
+    <link data-trunk rel="css" href="style.css" />
+    <!-- wasm-opt -Oz (binaryen version_133, voir CONTRIBUTING.md) : fonctions de la cible wasm32 de
+         Rust activées explicitement (sinon refus des opérations mémoire en bloc). -->
+    <link data-trunk rel="rust" data-wasm-opt="z" data-wasm-opt-params="--enable-bulk-memory --enable-nontrapping-float-to-int --enable-sign-ext --enable-reference-types --enable-multivalue --enable-mutable-globals" data-bin="rc-manager-web" />
+    <link data-trunk rel="copy-file" href="public/manifest.webmanifest" />
+    <link data-trunk rel="copy-file" href="public/sw.js" />
+    <link data-trunk rel="copy-file" href="public/icon.svg" />
+    <link data-trunk rel="copy-file" href="public/icon-192.png" />
+    <link data-trunk rel="copy-file" href="public/icon-512.png" />
+    <link data-trunk rel="copy-dir" href="public/fonts" />
+  </head>
+  <body>
+    <!-- Bande fixe du haut (voir .bande-encoche dans style.css) : vide, hauteur nulle hors appli
+         installée. Leptos ajoute l'interface après elle. -->
+    <div class="bande-encoche" aria-hidden="true"></div>
+    <!-- Avant le chargement de l'interface (et donc de la langue choisie) : les deux langues. -->
+    <noscript><p lang="fr">Rustcraft Manager a besoin de JavaScript et de WebAssembly.</p><p lang="en">Rustcraft Manager needs JavaScript and WebAssembly.</p></noscript>
+  </body>
+</html>

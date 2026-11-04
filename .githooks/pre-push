@@ -1,0 +1,4 @@
+#!/usr/bin/env bash
+# Hook pre-push versionné : la vérification complète avant chaque envoi.
+# Activation (une fois par clone) : git config core.hooksPath .githooks
+exec "$(git rev-parse --show-toplevel)/scripts/check.sh"

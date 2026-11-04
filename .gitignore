@@ -1,0 +1,26 @@
+# Construction
+/target/
+/target-*/
+/web/target/
+/web/dist/
+**/*.rs.bk
+
+# Données locales (base, clés, journaux)
+/data/
+*.db
+*.db-wal
+*.db-shm
+*.key
+*.log
+.env
+secrets/
+
+# Python (outils de mesure)
+__pycache__/
+*.pyc
+
+# Notes internes (non publiées)
+/docs/bonnes-pratiques.md
+/docs/plans/
+/.audit/
+CLAUDE.md

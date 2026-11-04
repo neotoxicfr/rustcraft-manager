@@ -1,0 +1,8 @@
+# Règles par défaut de gitleaks, plus une exception : le nonce d'exemple de la RFC 6455
+# (« the sample nonce » en base64), envoyé comme Sec-WebSocket-Key par tests/e2e.rs.
+[extend]
+useDefault = true
+
+[[allowlists]]
+description = "Nonce d'exemple de la RFC 6455 (tests WebSocket)"
+regexes = ['''dGhlIHNhbXBsZSBub25jZQ==''']

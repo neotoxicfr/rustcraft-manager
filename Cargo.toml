@@ -1,0 +1,125 @@
+[package]
+name = "rc-manager"
+version = "0.1.0"
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+publish.workspace = true
+description = "Rustcraft Manager : gestionnaire web de serveurs Minecraft (binaire, API, interface embarquée)"
+build = "build.rs"
+
+[[bin]]
+name = "rustcraft-manager"
+path = "src/main.rs"
+
+# Faux `java` des tests du pilotage (tests/servers.rs) : jamais livré (l'image et la release ne
+# construisent que `rustcraft-manager`).
+[[bin]]
+name = "rcm-faux-java"
+path = "tests/outils/faux_java.rs"
+test = false
+doc = false
+bench = false
+
+[dependencies]
+rc-manager-shared = { workspace = true }
+axum = { workspace = true }
+tokio = { workspace = true }
+rusqlite = { workspace = true }
+argon2 = { workspace = true }
+qrcode = { workspace = true }
+toml = { workspace = true }
+serde = { workspace = true }
+serde_json = { workspace = true }
+ring = { workspace = true }
+base64 = { workspace = true }
+tracing = { workspace = true }
+tracing-subscriber = { workspace = true }
+hyper = { workspace = true }
+hyper-util = { workspace = true }
+tower = { workspace = true }
+webauthn-rs = { workspace = true }
+# Phase 2 : téléchargements officiels (HTTPS, rustls sur ring, certificats du système), archives
+# de Java et lecture des jars (zip, tar.gz), somme MD5 de Purpur (seule fournie par son API),
+# CPU et mémoire des processus serveurs.
+reqwest = { version = "0.13.5", default-features = false, features = ["rustls-no-provider"] }
+rustls = { version = "0.23.40", default-features = false, features = ["ring", "std", "tls12"] }
+zip = { version = "9.0.5", default-features = false, features = ["deflate-flate2-zlib-rs"] }
+tar = "0.4.46"
+flate2 = { workspace = true }
+md-5 = "0.11.0"
+# Gestionnaire de fichiers : envois lus en flux, téléchargements et zip envoyés en flux (déjà tirés
+# par axum).
+futures-core = { version = "0.3.34", default-features = false }
+http-body-util = "0.1.5"
+sysinfo = { version = "0.39.6", default-features = false, features = ["system", "disk"] }
+saphyr-parser = { version = "0.2.2", default-features = false }
+toml_edit = { version = "0.25.17", default-features = false, features = ["parse", "display"] }
+
+[target.'cfg(windows)'.dependencies]
+# Objet Job de Windows (aucun processus serveur orphelin si le gestionnaire meurt), API sûre.
+win32job = "2.0.3"
+
+[build-dependencies]
+# Fichiers de l'interface compressés une fois à la construction, empreintes pour ETag et CSP.
+flate2 = { workspace = true }
+ring = { workspace = true }
+base64 = { workspace = true }
+
+[dev-dependencies]
+# Authentificateur logiciel des tests de passkeys (signature ES256), déjà tiré par webauthn-rs.
+p256 = { version = "0.13.2", default-features = false, features = ["ecdsa", "std"] }
+
+[lints]
+workspace = true
+
+# L'interface web (WebAssembly, construite par `trunk`) est hors du workspace natif : elle a sa
+# propre cible, son propre verrou et son propre profil.
+[workspace]
+resolver = "3"
+members = [".", "shared"]
+exclude = ["web"]
+
+[workspace.package]
+edition = "2024"
+rust-version = "1.99"
+license = "MIT OR Apache-2.0"
+publish = false
+
+[workspace.dependencies]
+rc-manager-shared = { path = "shared" }
+serde = { version = "1", features = ["derive"] }
+# Ordre des clés gardé (listes du jeu réécrites sans changer leur mise en forme).
+serde_json = { version = "1", features = ["preserve_order"] }
+axum = { version = "0.8.9", default-features = false, features = ["http1", "json", "tokio", "ws", "query"] }
+tokio = { version = "1.54", features = ["rt-multi-thread", "macros", "net", "signal", "sync", "time", "process", "io-util", "fs"] }
+rusqlite = { version = "0.40.2", features = ["bundled"] }
+argon2 = "0.6.0"
+qrcode = { version = "0.14.1", default-features = false, features = ["svg"] }
+toml = { version = "1.1.8", default-features = false, features = ["parse", "serde"] }
+ring = "0.17.14"
+base64 = "0.23.1"
+flate2 = { version = "1.1.10", default-features = false, features = ["zlib-rs"] }
+tracing = "0.1"
+tracing-subscriber = { version = "0.3", default-features = false, features = ["fmt", "std", "ansi"] }
+hyper = { version = "1.12", default-features = false, features = ["server", "http1"] }
+hyper-util = { version = "0.1.21", default-features = false, features = ["tokio"] }
+tower = { version = "0.5", default-features = false, features = ["util"] }
+# Passkeys. 0.6.1-dev (30/04/2026) plutôt que 0.5.5 : RustCrypto (crypto-glue) au lieu d'OpenSSL,
+# rien de natif à installer sous Windows ni dans l'image distroless. Version exacte (pré-version).
+webauthn-rs = { version = "=0.6.1-dev", default-features = false, features = ["conditional-ui"] }
+
+[workspace.lints.rust]
+unsafe_code = "deny"
+
+[workspace.lints.clippy]
+all = { level = "warn", priority = -1 }
+or_fun_call = "warn"
+
+[profile.dev.package."*"]
+opt-level = 2
+
+[profile.release]
+lto = "thin"
+codegen-units = 1
+debug = "line-tables-only"

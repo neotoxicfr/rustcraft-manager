@@ -1,0 +1,51 @@
+name: Bogue
+description: Rustcraft Manager plante, se comporte mal ou affiche quelque chose de faux.
+labels: ["bug"]
+body:
+  - type: textarea
+    id: quoi
+    attributes:
+      label: Ce qui se passe
+      description: Joins une capture d'écran si c'est visible.
+    validations:
+      required: true
+  - type: textarea
+    id: attendu
+    attributes:
+      label: Ce qui était attendu
+    validations:
+      required: true
+  - type: textarea
+    id: repro
+    attributes:
+      label: Reproduire
+      placeholder: |
+        1. Serveur Paper 1.21.x créé depuis l'assistant
+        2. Onglet Console, commande `list`
+        3. …
+    validations:
+      required: true
+  - type: input
+    id: version
+    attributes:
+      label: Version
+      description: Affichée dans les réglages, ou `rustcraft-manager --version`.
+  - type: dropdown
+    id: installation
+    attributes:
+      label: Installation
+      options:
+        - Windows (exécutable)
+        - Docker
+        - Autre
+  - type: input
+    id: navigateur
+    attributes:
+      label: Navigateur et appareil
+      description: Par exemple Firefox 140 sur Windows, Safari sur iPhone (appli installée ou non).
+  - type: textarea
+    id: journal
+    attributes:
+      label: Journal
+      description: Sortie du gestionnaire. Retire le lien du premier compte s'il y figure.
+      render: text

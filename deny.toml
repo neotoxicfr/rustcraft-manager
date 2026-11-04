@@ -1,0 +1,88 @@
+# cargo deny check : licences, avis de sécurité, sources des crates. Lancé par scripts/check.sh.
+
+[graph]
+all-features = false
+
+[advisories]
+# Base RustSec : tout avis non ignoré ici fait échouer la vérification.
+ignore = [
+    # `paste` n'est plus maintenu (avis « unmaintained », aucune faille) : macro de compilation
+    # tirée par leptos (interface wasm), rien à l'exécution côté serveur. À retirer quand leptos
+    # en change (cargo tree -i paste dans web/).
+    { id = "RUSTSEC-2024-0436", reason = "macro de compilation de leptos, sans faille connue" },
+    # `rsa` (attaque « Marvin ») : canal temporel sur le DÉCHIFFREMENT RSA avec une clé privée.
+    # Tiré par crypto-glue (webauthn-rs) pour VÉRIFIER des signatures RS256 de passkeys avec une
+    # clé publique : aucune clé privée RSA, aucun déchiffrement ici. Pas de version corrigée.
+    { id = "RUSTSEC-2023-0071", reason = "vérification de signatures seulement, aucune clé privée RSA" },
+    # `crypto-bigint` 0.5.5 (avis du 24/10/2026) : branches dépendant des valeurs dans des
+    # opérations censées être à temps constant ; fuite possible quand les entiers sont SECRETS.
+    # Tiré par elliptic-curve 0.13 (crypto-glue, webauthn-rs) pour VÉRIFIER des signatures
+    # ES256/384/512 de passkeys avec une clé publique : aucune clé privée côté serveur (la
+    # signature de p256 ne sert qu'aux tests). Correctif en 0.7.6, inatteignable tant
+    # qu'elliptic-curve reste en 0.13 (cargo tree -i crypto-bigint@0.5.5) : à retirer à la
+    # montée de webauthn-rs.
+    { id = "RUSTSEC-2026-0387", reason = "vérification de signatures seulement, aucun secret" },
+]
+
+[licenses]
+# Licences permissives seulement (le projet est MIT OR Apache-2.0).
+allow = [
+    "MIT",
+    "Apache-2.0",
+    "Apache-2.0 WITH LLVM-exception",
+    "BSD-2-Clause",
+    "BSD-3-Clause",
+    "ISC",
+    "Zlib",
+    "Unicode-3.0",
+]
+confidence-threshold = 0.9
+
+# Interface (web/, même fichier lu depuis ce dossier) : deux licences permissives tirées par
+# leptos, autorisées pour ces crates seulement.
+[[licenses.exceptions]]
+crate = "base16"
+allow = ["CC0-1.0"]
+
+[[licenses.exceptions]]
+crate = "xxhash-rust"
+allow = ["BSL-1.0"]
+
+# Passkeys : webauthn-rs (kanidm) et sa façade RustCrypto sous MPL-2.0 (copyleft PAR FICHIER :
+# utilisées telles quelles, sans modification, rien n'est imposé au reste du projet).
+[[licenses.exceptions]]
+crate = "webauthn-rs"
+allow = ["MPL-2.0"]
+
+[[licenses.exceptions]]
+crate = "webauthn-rs-core"
+allow = ["MPL-2.0"]
+
+[[licenses.exceptions]]
+crate = "webauthn-rs-proto"
+allow = ["MPL-2.0"]
+
+[[licenses.exceptions]]
+crate = "webauthn-attestation-ca"
+allow = ["MPL-2.0"]
+
+[[licenses.exceptions]]
+crate = "crypto-glue"
+allow = ["MPL-2.0"]
+
+# Téléchargements des serveurs (phase 2) : rustls-platform-verifier embarque la liste des autorités
+# de Mozilla (données, licence permissive CDLA 2.0), utilisée là où le système n'en fournit pas.
+[[licenses.exceptions]]
+crate = "webpki-root-certs"
+allow = ["CDLA-Permissive-2.0"]
+
+[bans]
+multiple-versions = "warn"
+wildcards = "deny"
+# Les chemins internes du workspace (`path = ...`) ne sont pas des jokers.
+allow-wildcard-paths = true
+
+[sources]
+unknown-registry = "deny"
+unknown-git = "deny"
+allow-registry = ["https://github.com/rust-lang/crates.io-index"]

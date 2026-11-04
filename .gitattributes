@@ -1,0 +1,4 @@
+* text=auto eol=lf
+*.jar binary
+# Fichiers réels des serveurs (aller-retour octet pour octet) : fins de ligne d origine gardées.
+tests/fixtures/configs/** -text

@@ -1,0 +1,45 @@
+[package]
+name = "rc-manager-web"
+version = "0.1.0"
+edition = "2024"
+rust-version = "1.99"
+license = "MIT OR Apache-2.0"
+publish = false
+description = "Rustcraft Manager : interface web (Leptos, rendu client en WebAssembly, construite par trunk)"
+
+# Hors du workspace natif (voir `exclude` du Cargo.toml racine) : cible wasm32, verrou et profil
+# propres. Construire avec `trunk build --release` depuis ce dossier.
+# Table vide : racine de son propre workspace (sinon cargo, exclu du dépôt, remonterait jusqu'à un
+# éventuel Cargo.toml parent, par exemple celui du dépôt principal pour un worktree imbriqué).
+[workspace]
+
+[dependencies]
+rc-manager-shared = { path = "../shared" }
+leptos = { version = "0.8.22", features = ["csr"] }
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+# Même version que `wasm-bindgen-cli` installé (trunk refuse un écart).
+wasm-bindgen = "=0.2.129"
+wasm-bindgen-futures = "0.4"
+js-sys = "0.3.106"
+web-sys = { version = "0.3.106", features = [
+    "Window", "Document", "Element", "HtmlElement", "Location", "History", "Navigator",
+    "Storage", "Request", "RequestInit", "Response", "Headers", "WebSocket", "MessageEvent",
+    "CloseEvent", "Event", "EventTarget", "PopStateEvent", "ServiceWorkerContainer", "NodeList", "Node",
+    "VisibilityState", "CssStyleDeclaration", "MediaQueryList", "KeyboardEvent", "HtmlDivElement",
+    "HtmlSpanElement", "HtmlInputElement", "HtmlTextAreaElement",
+    # Gestionnaire de fichiers : envoi avec progression, glisser-déposer.
+    "XmlHttpRequest", "XmlHttpRequestUpload", "XmlHttpRequestEventTarget", "ProgressEvent", "File", "FileList",
+    "Blob", "DragEvent", "DataTransfer", "MouseEvent",
+] }
+
+[profile.release]
+# Taille avant tout : l'interface est téléchargée par chaque navigateur (et chaque téléphone).
+opt-level = "z"
+lto = true
+codegen-units = 1
+panic = "abort"
+strip = true
+
+[lints.rust]
+unsafe_code = "deny"

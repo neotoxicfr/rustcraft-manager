@@ -1,0 +1,10 @@
+[build]
+target = "index.html"
+dist = "dist"
+public_url = "/"
+filehash = true
+
+[tools]
+# Outils déjà installés (voir CONTRIBUTING.md) : trunk ne télécharge rien avec --offline.
+wasm_bindgen = "0.2.129"
+wasm_opt = "version_133"

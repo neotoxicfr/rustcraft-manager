@@ -1,0 +1,12 @@
+# Contexte de construction de l image (Dockerfile à la racine).
+**/target
+**/target-*
+.git
+.claude
+captures
+reports
+cache
+web/dist
+**/*.log
+**/*.pcap
+**/*.jar

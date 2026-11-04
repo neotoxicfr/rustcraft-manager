@@ -1,0 +1,5 @@
+blank_issues_enabled: false
+contact_links:
+  - name: Faille de sécurité
+    url: https://github.com/neotoxicfr/rustcraft-manager/security/policy
+    about: Ne la signale pas dans une issue publique, suis la politique de sécurité.

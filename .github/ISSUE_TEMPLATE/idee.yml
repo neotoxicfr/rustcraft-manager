@@ -1,0 +1,16 @@
+name: Idée
+description: Proposer une fonction ou une amélioration.
+labels: ["enhancement"]
+body:
+  - type: textarea
+    id: besoin
+    attributes:
+      label: Le besoin
+      description: Ce qui manque ou ce qui gêne, et dans quelle situation.
+    validations:
+      required: true
+  - type: textarea
+    id: piste
+    attributes:
+      label: La piste
+      description: Comment tu l'imagines.

@@ -1,0 +1,88 @@
+# Intégration continue : la même vérification que le hook pre-push (scripts/check.sh), puis une
+# construction de l'image Docker (amd64 et arm64, sans envoi).
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+permissions: {}
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  CARGO_TERM_COLOR: always
+  # Mêmes versions que le Dockerfile, web/Cargo.toml et web/Trunk.toml.
+  TRUNK_VERSION: 0.21.14
+  WASM_BINDGEN_VERSION: 0.2.129
+  BINARYEN_VERSION: version_133
+  BINARYEN_SHA256: 2dc9c7813f5375db93d96ead4b78222fcc3e2677bbb832297af4797782a37489
+  CARGO_DENY_VERSION: 0.20.2
+  CARGO_AUDIT_VERSION: 0.22.2
+
+jobs:
+  check:
+    name: fmt, clippy, tests, interface, deny, audit
+    runs-on: ubuntu-24.04
+    timeout-minutes: 90
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - name: Chaîne d'outils (rust-toolchain.toml)
+        run: |
+          rustup toolchain install
+          rustup show active-toolchain
+
+      - uses: Swatinem/rust-cache@d1527c8f67ef9af357290475d4af4b0fab8f12e0 # v2.9.3
+        with:
+          workspaces: |
+            . -> target
+            web -> target/wasm
+
+      - name: Outils (trunk, wasm-bindgen, cargo-deny, cargo-audit)
+        run: |
+          cargo install --locked trunk --version "$TRUNK_VERSION"
+          cargo install --locked wasm-bindgen-cli --version "$WASM_BINDGEN_VERSION"
+          cargo install --locked cargo-deny --version "$CARGO_DENY_VERSION"
+          cargo install --locked cargo-audit --version "$CARGO_AUDIT_VERSION"
+
+      - name: wasm-opt (binaryen, archive officielle vérifiée)
+        run: |
+          curl -fsSL -o "$RUNNER_TEMP/binaryen.tgz" \
+            "https://github.com/WebAssembly/binaryen/releases/download/$BINARYEN_VERSION/binaryen-$BINARYEN_VERSION-x86_64-linux.tar.gz"
+          echo "$BINARYEN_SHA256  $RUNNER_TEMP/binaryen.tgz" | sha256sum -c -
+          tar -xzf "$RUNNER_TEMP/binaryen.tgz" -C "$RUNNER_TEMP"
+          echo "$RUNNER_TEMP/binaryen-$BINARYEN_VERSION/bin" >> "$GITHUB_PATH"
+
+      - name: scripts/check.sh
+        run: scripts/check.sh
+
+  docker:
+    name: image Docker (sans envoi)
+    runs-on: ubuntu-24.04
+    timeout-minutes: 90
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - uses: docker/setup-buildx-action@f87e5991a6d7451dcb8d9637bfbc97413f497069 # v4.4.1
+
+      - uses: docker/build-push-action@c3c9e263c25d99ce0380d002d59b67737d91b0dc # v7.4.0
+        with:
+          context: .
+          platforms: linux/amd64,linux/arm64
+          push: false
+          build-args: RCM_GIT_COMMIT=${{ github.sha }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
