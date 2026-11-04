@@ -1,12 +1,10 @@
-# Mises à jour groupées, une fois par semaine, avec une semaine de recul sur chaque version.
+# Mises à jour groupées, vérifiées chaque jour, sans délai d'attente.
 version: 2
 updates:
   - package-ecosystem: cargo
     directories: ["/", "/web"]
     schedule:
-      interval: weekly
-    cooldown:
-      default-days: 7
+      interval: daily
     ignore:
       # Version exacte, liée à wasm-bindgen-cli (Dockerfile, CI, CONTRIBUTING) : à monter ensemble.
       - dependency-name: wasm-bindgen
@@ -17,9 +15,7 @@ updates:
   - package-ecosystem: docker
     directory: /
     schedule:
-      interval: weekly
-    cooldown:
-      default-days: 7
+      interval: daily
     groups:
       docker:
         patterns: ["*"]
@@ -27,9 +23,7 @@ updates:
   - package-ecosystem: github-actions
     directory: /
     schedule:
-      interval: weekly
-    cooldown:
-      default-days: 7
+      interval: daily
     groups:
       github-actions:
         patterns: ["*"]
