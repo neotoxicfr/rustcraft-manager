@@ -362,13 +362,10 @@ pub async fn login_finish(
     else {
         return Err(fail("credential"));
     };
-    let res = pk
-        .webauthn
-        .finish_discoverable_authentication(&cred, state, &[DiscoverableKey::from(&passkey)])
-        .map_err(|e| {
-            tracing::info!("passkey refusée à la connexion : {e}");
-            fail("verify")
-        })?;
+    let res = pk.webauthn.finish_discoverable_authentication_v2(&cred, state, &passkey).map_err(|e| {
+        tracing::info!("passkey refusée à la connexion : {e}");
+        fail("verify")
+    })?;
     // Compteur et état de sauvegarde mis à jour (le cœur a déjà refusé un compteur qui recule).
     passkey.update_credential(&res);
     let data = to_json(&passkey)?;
