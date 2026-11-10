@@ -2105,7 +2105,7 @@ checksum = "63b8176103e19a2643978565ca18b50549f6101881c443590420e4dc998a3c69"
 
 [[package]]
 name = "rc-manager"
-version = "0.1.0"
+version = "0.1.1"
 dependencies = [
  "argon2 0.6.0",
  "axum",
@@ -2141,7 +2141,7 @@ dependencies = [
 
 [[package]]
 name = "rc-manager-shared"
-version = "0.1.0"
+version = "0.1.1"
 dependencies = [
  "serde",
  "serde_json",

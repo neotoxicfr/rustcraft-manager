@@ -85,7 +85,7 @@ Images publiées pour `linux/amd64` et `linux/arm64` sur
    ```yaml
    services:
      rustcraft-manager:
-       image: ghcr.io/neotoxicfr/rustcraft-manager:0.1.0
+       image: ghcr.io/neotoxicfr/rustcraft-manager:0.1.1
        init: true                   # signaux transmis, processus Java récoltés
        stop_grace_period: 120s      # save-all puis stop de chaque serveur
        restart: unless-stopped
@@ -372,6 +372,13 @@ QEMU, et l'interface wasm n'est construite qu'une fois pour les deux architectur
 
 **Releases** : un tag `vX.Y.Z` (égal à la version de `Cargo.toml`) publie l'image
 `ghcr.io/neotoxicfr/rustcraft-manager:X.Y.Z` (multi-architecture) et crée la release GitHub.
+
+## Projet lié
+
+[Rustcraft](https://github.com/neotoxicfr/rustcraft) est un client Minecraft Java réécrit en Rust,
+lancé depuis le lanceur officiel, avec son monde solo. Les deux projets sont indépendants :
+Rustcraft Manager pilote les serveurs officiels, Paper, Fabric et les autres, quel que soit le
+client des joueurs.
 
 ## Contribuer
 
