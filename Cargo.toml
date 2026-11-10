@@ -1,6 +1,6 @@
 [package]
 name = "rc-manager"
-version = "0.1.0"
+version = "0.1.1"
 edition.workspace = true
 rust-version.workspace = true
 license.workspace = true
@@ -93,7 +93,7 @@ serde = { version = "1", features = ["derive"] }
 serde_json = { version = "1", features = ["preserve_order"] }
 axum = { version = "0.8.9", default-features = false, features = ["http1", "json", "tokio", "ws", "query"] }
 tokio = { version = "1.54", features = ["rt-multi-thread", "macros", "net", "signal", "sync", "time", "process", "io-util", "fs"] }
-rusqlite = { version = "0.40.2", features = ["bundled"] }
+rusqlite = { version = "0.41.1", features = ["bundled"] }
 argon2 = "0.6.0"
 qrcode = { version = "0.14.1", default-features = false, features = ["svg"] }
 toml = { version = "1.1.8", default-features = false, features = ["parse", "serde"] }
@@ -107,7 +107,7 @@ hyper-util = { version = "0.1.21", default-features = false, features = ["tokio"
 tower = { version = "0.5", default-features = false, features = ["util"] }
 # Passkeys. 0.6.1-dev (30/04/2026) plutôt que 0.5.5 : RustCrypto (crypto-glue) au lieu d'OpenSSL,
 # rien de natif à installer sous Windows ni dans l'image distroless. Version exacte (pré-version).
-webauthn-rs = { version = "=0.6.1-dev", default-features = false, features = ["conditional-ui"] }
+webauthn-rs = { version = "=0.6.2", default-features = false, features = ["conditional-ui"] }
 
 [workspace.lints.rust]
 unsafe_code = "deny"
