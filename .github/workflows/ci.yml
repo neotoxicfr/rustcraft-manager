@@ -1,5 +1,7 @@
 # Intégration continue : la même vérification que le hook pre-push (scripts/check.sh), puis une
-# construction de l'image Docker (amd64 et arm64, sans envoi).
+# construction de l'image Docker (amd64 et arm64, sans envoi). Chaque tâche ne tourne que si un
+# fichier qu'elle lit a changé (tâche `changes`) : un README, la documentation ou les réglages du
+# dépôt seuls ne lancent rien.
 name: CI
 
 on:
@@ -25,8 +27,55 @@ env:
   CARGO_AUDIT_VERSION: 0.22.2
 
 jobs:
+  changes:
+    name: fichiers modifiés
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    permissions:
+      contents: read
+    outputs:
+      check: ${{ steps.parts.outputs.check }}
+      docker: ${{ steps.parts.outputs.docker }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+          fetch-depth: 0
+      # Une demande de fusion est comparée au commit sur lequel elle est fusionnée, un envoi au
+      # commit précédent. Sans base utilisable (lancement manuel, premier envoi d'une branche),
+      # tout tourne.
+      - id: parts
+        shell: bash
+        env:
+          BEFORE: ${{ github.event.before }}
+        run: |
+          base="$BEFORE"
+          if [ "$GITHUB_EVENT_NAME" = pull_request ]; then base=$(git rev-parse HEAD^1); fi
+          if [ "$GITHUB_EVENT_NAME" = workflow_dispatch ] || ! git cat-file -e "$base^{commit}" 2>/dev/null; then
+            echo "check=true" >> "$GITHUB_OUTPUT"
+            echo "docker=true" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+          files=$(git diff --name-only "$base" HEAD)
+          echo "$files"
+          # Lus par aucune tâche : Markdown et licences de la racine, documentation, réglages du
+          # dépôt et de l'éditeur, tout `.github` sauf ce fichier.
+          aucune='^([^/]+\.md|LICENSE-[^/]+|\.gitignore|\.editorconfig|\.gitleaks\.toml|docs/.*|\.githooks/.*|\.github/(ISSUE_TEMPLATE/.*|[^/]+|workflows/release\.yml))$'
+          # Lus par l'image seule, puis par la vérification seule.
+          image_seule='^(Dockerfile|\.dockerignore)$'
+          verification_seule='^(tests/.*|scripts/.*|deny\.toml|rustfmt\.toml)$'
+          check=false
+          docker=false
+          utiles=$(grep -Ev "$aucune" <<< "$files" || true)
+          if [ -n "$utiles" ] && grep -Evq "$image_seule" <<< "$utiles"; then check=true; fi
+          if [ -n "$utiles" ] && grep -Evq "$verification_seule" <<< "$utiles"; then docker=true; fi
+          echo "check=$check" >> "$GITHUB_OUTPUT"
+          echo "docker=$docker" >> "$GITHUB_OUTPUT"
+
   check:
     name: fmt, clippy, tests, interface, deny, audit
+    needs: changes
+    if: needs.changes.outputs.check == 'true'
     runs-on: ubuntu-24.04
     timeout-minutes: 90
     permissions:
@@ -67,6 +116,8 @@ jobs:
 
   docker:
     name: image Docker (sans envoi)
+    needs: changes
+    if: needs.changes.outputs.docker == 'true'
     runs-on: ubuntu-24.04
     timeout-minutes: 90
     permissions:
