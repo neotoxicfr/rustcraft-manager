@@ -20,7 +20,7 @@
 # Images de base épinglées par empreinte (index multi-architecture lu le 20/10/2026) : une
 # reconstruction ne change pas d'image en silence. Mettre les deux à jour ensemble, avec une
 # semaine de recul : docker buildx imagetools inspect <image:étiquette>
-FROM --platform=$BUILDPLATFORM rust:1.99-bookworm@sha256:e12566d5abc17a0da741628782cdb504b68b8961f5bfcf677936bf3e8b32de29 AS tools
+FROM --platform=$BUILDPLATFORM rust:1.99-bookworm@sha256:e6f2cff35d0f309acf8433b4f05878ed77092602c5065cc81801177da0bb3a9c AS tools
 # Outils de l'interface, mêmes versions que sur le poste de développement.
 RUN rustup target add wasm32-unknown-unknown \
  && cargo install --locked trunk --version 0.21.14 \
