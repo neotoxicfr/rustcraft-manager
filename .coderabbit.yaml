@@ -30,8 +30,9 @@ reviews:
     drafts: false
     base_branches:
       - "^dev$"
-    # Les PR de Dependabot sont relues aussi : aucun auteur ignoré.
-    ignore_usernames: []
+    # Dependabot n'est pas relu : la CI suffit pour ses montées, et le quota de revues est épargné.
+    ignore_usernames:
+      - "dependabot[bot]"
   # CodeRabbit commente, il ne pousse rien : ni tests générés, ni correctifs, ni résolution de conflit.
   finishing_touches:
     unit_tests:
@@ -50,9 +51,9 @@ reviews:
     issue_assessment:
       mode: "off"
 
+  # Les Cargo.lock restent relus : une PR du mainteneur qui ne touche qu'eux doit avoir une vraie
+  # revue pour se fusionner seule.
   path_filters:
-    - "!Cargo.lock"
-    - "!web/Cargo.lock"
     - "!target/**"
     - "!web/dist/**"
     - "!**/*.png"

@@ -1,15 +1,23 @@
-# Fusion automatique : toute PR vers dev ouverte par un robot (Dependabot…) ou par le mainteneur
-# se fusionne d'elle-même quand tous les contrôles obligatoires de dev passent, revue CodeRabbit
-# comprise ; un contrôle en échec la laisse ouverte. Les mises à jour de sécurité de Dependabot
-# visent toujours main : elles sont déplacées sur dev, jamais fusionnées dans main.
+# Fusion automatique dans dev, quand tous les contrôles obligatoires passent :
+# - PR d'un robot (Dependabot…) : la CI suffit, CodeRabbit ne relit pas les robots ;
+# - PR du mainteneur : il faut EN PLUS que CodeRabbit ait réellement relu le commit de tête (une
+#   revue publiée par coderabbitai[bot] sur ce commit). Une revue sautée (quota atteint, erreur)
+#   laisse le contrôle CodeRabbit au vert : ce contrôle seul ne suffit donc pas. Sans vraie revue,
+#   la PR reste ouverte et une revue est redemandée une seule fois, plus tard.
+# Un contrôle en échec laisse la PR ouverte. Les mises à jour de sécurité de Dependabot visent
+# toujours main : elles sont déplacées sur dev.
 #
-# Une fusion faite avec GITHUB_TOKEN ne lance aucun workflow de push : la tâche attend la fusion,
-# puis lance elle-même la publication de l'image :dev.
+# Une fusion faite avec GITHUB_TOKEN ne lance aucun workflow de push : la tâche lance elle-même la
+# publication de l'image :dev.
 name: Fusion automatique
 
 on:
   pull_request:
     branches: [dev, main]
+    # `edited` couvre une base changée vers dev après l'ouverture.
+    types: [opened, synchronize, reopened, ready_for_review, edited]
+  pull_request_review:
+    types: [submitted]
 
 permissions:
   contents: read
@@ -22,12 +30,15 @@ jobs:
   automerge:
     name: fusion automatique
     if: >-
-      github.event.pull_request.user.login == 'dependabot[bot]' ||
-      (github.base_ref == 'dev' &&
-       (github.event.pull_request.user.type == 'Bot' ||
-        github.event.pull_request.user.login == github.repository_owner))
+      github.event.pull_request.draft == false &&
+      (github.event_name == 'pull_request' ||
+       github.event.review.user.login == 'coderabbitai[bot]') &&
+      (github.event.pull_request.user.login == 'dependabot[bot]' ||
+       (github.event.pull_request.base.ref == 'dev' &&
+        (github.event.pull_request.user.type == 'Bot' ||
+         github.event.pull_request.user.login == github.repository_owner)))
     runs-on: ubuntu-24.04
-    timeout-minutes: 60
+    timeout-minutes: 100
     permissions:
       actions: write
       contents: write
@@ -37,24 +48,44 @@ jobs:
       GH_REPO: ${{ github.repository }}
       PR: ${{ github.event.pull_request.number }}
       HEAD_REF: ${{ github.event.pull_request.head.ref }}
+      ROBOT: ${{ github.event.pull_request.user.type == 'Bot' }}
     steps:
       - name: Mise à jour de sécurité déplacée sur dev
-        if: github.base_ref == 'main'
+        if: github.event.pull_request.base.ref == 'main'
         run: |
           gh pr edit "$PR" --base dev
           gh workflow run ci.yml --ref "$HEAD_REF"
 
-      - name: Fusion quand tout est vert, puis image :dev
+      - name: Fusion quand les contrôles passent et que CodeRabbit a relu, puis image :dev
         run: |
-          gh pr merge "$PR" --auto --merge
-          for _ in $(seq 1 110); do
+          tete=$(gh pr view "$PR" --json headRefOid --jq .headRefOid)
+          for _ in $(seq 1 180); do
+            etat=$(gh pr view "$PR" --json state,headRefOid --jq '.state + " " + .headRefOid')
+            # Fusionnée, fermée, ou un commit plus récent (sa propre exécution prend le relais).
+            if [ "$etat" != "OPEN $tete" ]; then exit 0; fi
+            controles=$(gh pr checks "$PR" --required --json bucket --jq '
+              if any(.[]; .bucket == "fail" or .bucket == "cancel") then "echec"
+              elif length > 0 and all(.[]; .bucket == "pass" or .bucket == "skipping") then "vert"
+              else "attente" end' || true)
+            if [ "$controles" = echec ]; then exit 0; fi
+            if [ "$controles" = vert ]; then
+              revues=1
+              if [ "$ROBOT" != true ]; then
+                revues=$(gh api "repos/$GH_REPO/pulls/$PR/reviews" --paginate --jq \
+                  "[.[] | select(.user.login == \"coderabbitai[bot]\" and .commit_id == \"$tete\")] | length" |
+                  awk '{ n += $1 } END { print n + 0 }')
+              fi
+              if [ "$revues" -gt 0 ]; then
+                gh pr merge "$PR" --merge --match-head-commit "$tete"
+                gh workflow run dev-image.yml --ref dev
+                exit 0
+              fi
+            fi
             sleep 30
-            case "$(gh pr view "$PR" --json state --jq .state || true)" in
-              MERGED) gh workflow run dev-image.yml --ref dev; exit 0 ;;
-              CLOSED) exit 0 ;;
-            esac
-            # Un contrôle obligatoire en échec laisse la PR ouverte : rien à attendre.
-            echec=$(gh pr checks "$PR" --required --json bucket \
-              --jq 'any(.[]; .bucket == "fail")' || true)
-            if [ "$echec" = true ]; then exit 0; fi
           done
+          # Pas de vraie revue à temps : la redemander une seule fois pour cette PR, jamais plus.
+          if [ "$ROBOT" = true ]; then exit 0; fi
+          marque='<!-- fusion automatique : revue redemandée -->'
+          if ! gh api "repos/$GH_REPO/issues/$PR/comments" --paginate --jq '.[].body' | grep -qF "$marque"; then
+            gh pr comment "$PR" --body "@coderabbitai review $marque"
+          fi

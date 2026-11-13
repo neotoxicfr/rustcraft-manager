@@ -11,7 +11,8 @@ on:
 permissions: {}
 
 concurrency:
-  group: dev-image
+  # Un groupe par référence : un lancement manuel sur une autre branche n'annule pas celui de dev.
+  group: dev-image-${{ github.ref }}
   cancel-in-progress: true
 
 env:
