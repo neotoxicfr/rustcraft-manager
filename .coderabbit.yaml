@@ -26,9 +26,10 @@ reviews:
   suggested_reviewers: false
   auto_review:
     enabled: true
-    # Brouillons ignorés. Seule base : la branche par défaut (main), pas de branche de développement.
+    # Brouillons ignorés. Bases : la branche par défaut (main) et la branche de développement.
     drafts: false
-    base_branches: []
+    base_branches:
+      - "^dev$"
     # Les PR de Dependabot sont relues aussi : aucun auteur ignoré.
     ignore_usernames: []
   # CodeRabbit commente, il ne pousse rien : ni tests générés, ni correctifs, ni résolution de conflit.

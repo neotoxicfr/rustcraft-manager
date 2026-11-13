@@ -6,7 +6,7 @@ name: CI
 
 on:
   push:
-    branches: [main]
+    branches: [main, dev]
   pull_request:
   workflow_dispatch:
 
@@ -59,8 +59,8 @@ jobs:
           files=$(git diff --name-only "$base" HEAD)
           echo "$files"
           # Lus par aucune tâche : Markdown et licences de la racine, documentation, réglages du
-          # dépôt et de l'éditeur, tout `.github` sauf ce fichier.
-          aucune='^([^/]+\.md|LICENSE-[^/]+|\.gitignore|\.editorconfig|\.gitleaks\.toml|docs/.*|\.githooks/.*|\.github/(ISSUE_TEMPLATE/.*|[^/]+|workflows/release\.yml))$'
+          # dépôt, de l'éditeur et de la relecture, tout `.github` sauf ce fichier.
+          aucune='^([^/]+\.md|LICENSE-[^/]+|\.gitignore|\.editorconfig|\.gitleaks\.toml|\.coderabbit\.yaml|docs/.*|\.githooks/.*|\.github/(ISSUE_TEMPLATE/.*|[^/]+|workflows/(release|dev-image)\.yml))$'
           # Lus par l'image seule, puis par la vérification seule.
           image_seule='^(Dockerfile|\.dockerignore)$'
           verification_seule='^(tests/.*|scripts/.*|deny\.toml|rustfmt\.toml)$'
