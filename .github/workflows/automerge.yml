@@ -1,0 +1,60 @@
+# Fusion automatique : toute PR vers dev ouverte par un robot (Dependabot…) ou par le mainteneur
+# se fusionne d'elle-même quand tous les contrôles obligatoires de dev passent, revue CodeRabbit
+# comprise ; un contrôle en échec la laisse ouverte. Les mises à jour de sécurité de Dependabot
+# visent toujours main : elles sont déplacées sur dev, jamais fusionnées dans main.
+#
+# Une fusion faite avec GITHUB_TOKEN ne lance aucun workflow de push : la tâche attend la fusion,
+# puis lance elle-même la publication de l'image :dev.
+name: Fusion automatique
+
+on:
+  pull_request:
+    branches: [dev, main]
+
+permissions:
+  contents: read
+
+concurrency:
+  group: automerge-${{ github.event.pull_request.number }}
+  cancel-in-progress: true
+
+jobs:
+  automerge:
+    name: fusion automatique
+    if: >-
+      github.event.pull_request.user.login == 'dependabot[bot]' ||
+      (github.base_ref == 'dev' &&
+       (github.event.pull_request.user.type == 'Bot' ||
+        github.event.pull_request.user.login == github.repository_owner))
+    runs-on: ubuntu-24.04
+    timeout-minutes: 60
+    permissions:
+      actions: write
+      contents: write
+      pull-requests: write
+    env:
+      GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      GH_REPO: ${{ github.repository }}
+      PR: ${{ github.event.pull_request.number }}
+      HEAD_REF: ${{ github.event.pull_request.head.ref }}
+    steps:
+      - name: Mise à jour de sécurité déplacée sur dev
+        if: github.base_ref == 'main'
+        run: |
+          gh pr edit "$PR" --base dev
+          gh workflow run ci.yml --ref "$HEAD_REF"
+
+      - name: Fusion quand tout est vert, puis image :dev
+        run: |
+          gh pr merge "$PR" --auto --merge
+          for _ in $(seq 1 110); do
+            sleep 30
+            case "$(gh pr view "$PR" --json state --jq .state || true)" in
+              MERGED) gh workflow run dev-image.yml --ref dev; exit 0 ;;
+              CLOSED) exit 0 ;;
+            esac
+            # Un contrôle obligatoire en échec laisse la PR ouverte : rien à attendre.
+            echec=$(gh pr checks "$PR" --required --json bucket \
+              --jq 'any(.[]; .bucket == "fail")' || true)
+            if [ "$echec" = true ]; then exit 0; fi
+          done

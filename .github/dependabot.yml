@@ -1,10 +1,13 @@
-# Mises à jour groupées, vérifiées chaque jour, sans délai d'attente, proposées sur la branche dev
-# (main ne reçoit que les releases).
+# Mises à jour groupées, vérifiées chaque jour, proposées sur la branche dev (main ne reçoit que les
+# releases), sans délai d'attente : le délai de 3 jours appliqué par défaut aux mises à jour de
+# version est levé pour toutes les dépendances (cooldown.exclude, 0 jour n'étant pas une valeur admise).
 version: 2
 updates:
   - package-ecosystem: cargo
     directories: ["/", "/web"]
     target-branch: dev
+    cooldown:
+      exclude: ["*"]
     schedule:
       interval: daily
     ignore:
@@ -17,6 +20,8 @@ updates:
   - package-ecosystem: docker
     directory: /
     target-branch: dev
+    cooldown:
+      exclude: ["*"]
     schedule:
       interval: daily
     groups:
@@ -26,6 +31,8 @@ updates:
   - package-ecosystem: github-actions
     directory: /
     target-branch: dev
+    cooldown:
+      exclude: ["*"]
     schedule:
       interval: daily
     groups:

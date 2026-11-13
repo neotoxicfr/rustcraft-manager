@@ -21,7 +21,8 @@ et agréable : chaque contribution est jugée sur la sécurité, la mesure et la
 ## Avant d'ouvrir une PR
 
 Les PR visent la branche `dev` : chaque arrivée y publie l'image `ghcr.io/neotoxicfr/rustcraft-manager:dev`.
-`main` ne reçoit que les releases (étiquettes `X.Y.Z` et `latest`).
+Celles du mainteneur et des robots s'y fusionnent seules quand les contrôles obligatoires et la revue
+CodeRabbit passent. `main` ne reçoit que les releases (étiquettes `X.Y.Z` et `latest`).
 
 Une seule commande, la même que le hook `pre-push` et la CI (GitHub Actions) :
 

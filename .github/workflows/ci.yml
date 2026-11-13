@@ -60,7 +60,7 @@ jobs:
           echo "$files"
           # Lus par aucune tâche : Markdown et licences de la racine, documentation, réglages du
           # dépôt, de l'éditeur et de la relecture, tout `.github` sauf ce fichier.
-          aucune='^([^/]+\.md|LICENSE-[^/]+|\.gitignore|\.editorconfig|\.gitleaks\.toml|\.coderabbit\.yaml|docs/.*|\.githooks/.*|\.github/(ISSUE_TEMPLATE/.*|[^/]+|workflows/(release|dev-image)\.yml))$'
+          aucune='^([^/]+\.md|LICENSE-[^/]+|\.gitignore|\.editorconfig|\.gitleaks\.toml|\.coderabbit\.yaml|docs/.*|\.githooks/.*|\.github/(ISSUE_TEMPLATE/.*|[^/]+|workflows/(release|dev-image|automerge)\.yml))$'
           # Lus par l'image seule, puis par la vérification seule.
           image_seule='^(Dockerfile|\.dockerignore)$'
           verification_seule='^(tests/.*|scripts/.*|deny\.toml|rustfmt\.toml)$'
