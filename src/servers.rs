@@ -1555,7 +1555,8 @@ impl Manager {
     }
 
     async fn sample(&self, srv: &Arc<Server>) {
-        let mut sys = Some(sysinfo::System::new());
+        // `None` : système non pris en charge par sysinfo (CPU et mémoire restent inconnus).
+        let mut sys = sysinfo::System::new().ok();
         let t = self.timings();
         let mut tick = tokio::time::interval(t.sample_every);
         tick.set_missed_tick_behavior(tokio::time::MissedTickBehavior::Delay);
@@ -1566,9 +1567,10 @@ impl Manager {
                 break;
             }
             let Some(pid) = srv.pid().await else { continue };
-            let (s, cpu, mem) = match tokio::task::spawn_blocking({
-                let mut s = sys.take().unwrap_or_default();
+            let (s, cpu, mem) = tokio::task::spawn_blocking({
+                let s = sys.take().or_else(|| sysinfo::System::new().ok());
                 move || {
+                    let Some(mut s) = s else { return (None, None, None) };
                     let p = sysinfo::Pid::from_u32(pid);
                     s.refresh_processes_specifics(
                         sysinfo::ProcessesToUpdate::Some(&[p]),
@@ -1576,15 +1578,12 @@ impl Manager {
                         sysinfo::ProcessRefreshKind::nothing().with_cpu().with_memory(),
                     );
                     let (c, m) = s.process(p).map(|x| (x.cpu_usage(), x.memory())).unzip();
-                    (s, c, m)
+                    (Some(s), c, m)
                 }
             })
             .await
-            {
-                Ok(x) => x,
-                Err(_) => (sysinfo::System::new(), None, None),
-            };
-            sys = Some(s);
+            .unwrap_or_default();
+            sys = s;
             // Joueurs et ticks par l'entrée standard (RCON reste coupé : il écouterait sur toutes
             // les interfaces). Les réponses sont lues puis retirées de la console (`probe_line`).
             if srv.state() == ServerState::Running && last_probe.is_none_or(|l| l.elapsed() >= t.probe_every) {

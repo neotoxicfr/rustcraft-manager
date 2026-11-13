@@ -52,8 +52,8 @@ md-5 = "0.11.0"
 # par axum).
 futures-core = { version = "0.3.34", default-features = false }
 http-body-util = "0.1.5"
-sysinfo = { version = "0.39.6", default-features = false, features = ["system", "disk"] }
-saphyr-parser = { version = "0.2.2", default-features = false }
+sysinfo = { version = "0.40.3", default-features = false, features = ["system", "disk"] }
+saphyr-parser = { version = "0.3.4", default-features = false }
 toml_edit = { version = "0.25.17", default-features = false, features = ["parse", "display"] }
 
 [target.'cfg(windows)'.dependencies]
@@ -68,7 +68,7 @@ base64 = { workspace = true }
 
 [dev-dependencies]
 # Authentificateur logiciel des tests de passkeys (signature ES256), déjà tiré par webauthn-rs.
-p256 = { version = "0.13.2", default-features = false, features = ["ecdsa", "std"] }
+p256 = { version = "0.14.0", default-features = false, features = ["ecdsa", "std"] }
 
 [lints]
 workspace = true
