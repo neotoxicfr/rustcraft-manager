@@ -22,10 +22,6 @@ on:
 permissions:
   contents: read
 
-concurrency:
-  group: automerge-${{ github.event.pull_request.number }}
-  cancel-in-progress: true
-
 jobs:
   automerge:
     name: fusion automatique
@@ -39,8 +35,16 @@ jobs:
          github.event.pull_request.user.login == github.repository_owner)))
     runs-on: ubuntu-24.04
     timeout-minutes: 100
+    # Au niveau de la tâche : une exécution dont la tâche est sautée (revue humaine) ne doit pas
+    # annuler la boucle en cours.
+    concurrency:
+      group: automerge-${{ github.event.pull_request.number }}
+      cancel-in-progress: true
     permissions:
       actions: write
+      # Lus par `gh pr checks` (check runs et statuts de commit).
+      checks: read
+      statuses: read
       contents: write
       pull-requests: write
     env:
