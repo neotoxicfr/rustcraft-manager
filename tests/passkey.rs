@@ -130,7 +130,7 @@ impl Soft {
     }
 
     fn cose_key(&self) -> Vec<u8> {
-        let p = self.key.verifying_key().to_encoded_point(false);
+        let p = self.key.verifying_key().to_sec1_point(false);
         let mut out = Vec::new();
         cbor_head(5, 5, &mut out);
         cbor_int(1, &mut out);

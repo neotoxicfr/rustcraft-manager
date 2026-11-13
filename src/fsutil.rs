@@ -64,9 +64,8 @@ pub fn free_space(p: &Path) -> Option<u64> {
     let s = p.to_string_lossy();
     let p =
         std::path::PathBuf::from(s.strip_prefix(r"\\?\").filter(|r| r.as_bytes().get(1) == Some(&b':')).unwrap_or(&s));
-    let disks = sysinfo::Disks::new_with_refreshed_list();
+    let disks = sysinfo::Disks::new_with_refreshed_list().ok()?;
     disks
-        .list()
         .iter()
         .filter(|d| p.starts_with(d.mount_point()))
         .max_by_key(|d| d.mount_point().as_os_str().len())
