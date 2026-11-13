@@ -1,0 +1,192 @@
+# yaml-language-server: $schema=https://coderabbit.ai/integrations/schema.v2.json
+#
+# Réglages de relecture CodeRabbit pour Rustcraft Manager. CodeRabbit conseille : la CI
+# (scripts/check.sh : format, clippy natif et wasm, tests, cargo deny, cargo audit, image Docker) et
+# le mainteneur décident. Référence : https://docs.coderabbit.ai/reference/configuration
+language: fr-FR
+tone_instructions: >-
+  Concis et factuel. Ne signale que des défauts vérifiés, avec fichier:ligne et un scénario concret.
+  Pas de compliments, pas de remarques de style que rustfmt ou clippy règlent déjà.
+early_access: false
+
+reviews:
+  profile: chill
+  # N'approuve jamais de lui-même (remplace l'ancien `request_changes_workflow`).
+  auto_approvals:
+    enabled: false
+  high_level_summary: true
+  poem: false
+  review_status: true
+  collapse_walkthrough: true
+  changed_files_summary: true
+  sequence_diagrams: false
+  estimate_code_review_effort: true
+  in_progress_fortune: false
+  suggested_labels: false
+  suggested_reviewers: false
+  auto_review:
+    enabled: true
+    # Brouillons ignorés. Seule base : la branche par défaut (main), pas de branche de développement.
+    drafts: false
+    base_branches: []
+    # Les PR de Dependabot sont relues aussi : aucun auteur ignoré.
+    ignore_usernames: []
+  # CodeRabbit commente, il ne pousse rien : ni tests générés, ni correctifs, ni résolution de conflit.
+  finishing_touches:
+    unit_tests:
+      enabled: false
+    autofix:
+      enabled: false
+    fix_ci:
+      enabled: false
+    resolve_merge_conflict:
+      enabled: false
+  pre_merge_checks:
+    title:
+      mode: "off"
+    description:
+      mode: warning
+    issue_assessment:
+      mode: "off"
+
+  path_filters:
+    - "!Cargo.lock"
+    - "!web/Cargo.lock"
+    - "!target/**"
+    - "!web/dist/**"
+    - "!**/*.png"
+    - "!**/*.svg"
+    - "!**/*.ico"
+    - "!**/*.woff2"
+    - "!web/public/fonts/OFL-*.txt"
+    # Configurations réelles de serveurs Minecraft, lues par les tests : des données, pas du code.
+    - "!tests/fixtures/**"
+
+  path_instructions:
+    - path: "**/*"
+      instructions: |
+        Rustcraft Manager gère des serveurs Minecraft (Java) depuis une interface web. Règles valables
+        partout :
+        - Rien de Mojang dans le dépôt : les logiciels serveur sont téléchargés à l'exécution depuis
+          leurs sources officielles, somme de contrôle vérifiée.
+        - Aucun secret, jeton, adresse e-mail personnelle, IP ou domaine privé dans le dépôt ; les
+          valeurs de test sont factices (user@example.com). Les détails de déploiement restent hors
+          du dépôt.
+        - Code, commentaires et documentation en français ; messages de commit en anglais
+          (Conventional Commits).
+        - Une optimisation arrive avec ses chiffres avant/après, la méthode et la machine, dans
+          docs/perf.md.
+    - path: "src/**/*.rs"
+      instructions: |
+        Sécurité d'abord :
+        - toute route qui modifie quelque chose passe par la session, le jeton CSRF et l'audit ;
+        - toute entrée venue du réseau, d'un fichier ou d'une configuration est bornée (taille,
+          longueur, chemin confiné au dossier du serveur) ;
+        - aucun appel à un shell ; un processus se lance avec ses arguments séparés ;
+        - mots de passe, TOTP, passkeys, sessions et RCON : comparaisons à temps constant, aucun
+          secret dans les journaux ni dans les réponses d'erreur.
+        Un correctif de sécurité arrive avec un test qui échoue sans lui.
+    - path: "web/**"
+      instructions: |
+        Interface (leptos, wasm) :
+        - chaque information une seule fois à l'écran (pas de surtitre, de sous-titre qui reformule,
+          ni d'aide qui répète le libellé) ;
+        - tous les états soignés (survol, focus, chargement, erreur, vide), mobile compris ;
+        - couleurs, espacements et typographies par les variables du thème, jamais en dur ;
+        - chaque texte existe en français et en anglais (une clé manquante ne compile pas).
+    - path: "tests/**/*.rs"
+      instructions: |
+        Les tests ne dépendent pas de la charge de la machine : aucune assertion de durée, attente
+        sur la condition elle-même avec seulement un garde-fou large, pas de sleep pour ordonner.
+        Un test qui prouve un correctif échoue sur le code d'avant.
+    - path: "deny.toml"
+      instructions: |
+        Les avis ignorés (RUSTSEC-2024-0436, RUSTSEC-2023-0071, RUSTSEC-2026-0387) et les
+        exceptions de licence sont volontaires, chacun justifié dans le fichier : ne pas les
+        re-signaler. Une nouvelle exception doit porter sa raison.
+    - path: ".gitleaks.toml"
+      instructions: |
+        L'exception unique (nonce d'exemple de la RFC 6455, utilisé par tests/e2e.rs) est voulue.
+    - path: ".github/workflows/**"
+      instructions: |
+        Actions épinglées par commit complet avec l'étiquette de version en commentaire ; droits
+        minimaux. Les notes de release s'écrivent à la main : les notes générées
+        (generate_release_notes, --generate-notes) sont refusées.
+    - path: "Dockerfile"
+      instructions: |
+        Image minimale, utilisateur non root, aucun secret dans les couches (les secrets passent par
+        des fichiers montés à l'exécution).
+
+  tools:
+    # Déjà bloquants en CI (scripts/check.sh) : clippy natif et wasm, cargo deny et cargo audit.
+    clippy:
+      enabled: false
+    osvScanner:
+      enabled: false
+    trivy:
+      enabled: false
+    # Secrets : un seul scanner (gitleaks lit .gitleaks.toml).
+    gitleaks:
+      enabled: true
+    trufflehog:
+      enabled: false
+    presidio:
+      enabled: true
+    # Workflows et image.
+    actionlint:
+      enabled: true
+    zizmor:
+      enabled: true
+    yamllint:
+      enabled: true
+    checkov:
+      enabled: false
+    hadolint:
+      enabled: true
+    # Scripts.
+    shellcheck:
+      enabled: true
+    # Linters de prose et génériques : du bruit sur la documentation.
+    markdownlint:
+      enabled: false
+    languagetool:
+      enabled: false
+    vale:
+      enabled: false
+    ast-grep:
+      enabled: false
+    semgrep:
+      enabled: false
+    opengrep:
+      enabled: false
+    biome:
+      enabled: false
+    htmlhint:
+      enabled: false
+    github-checks:
+      enabled: true
+
+chat:
+  auto_reply: true
+  art: false
+
+knowledge_base:
+  opt_out: false
+  web_search:
+    enabled: true
+  code_guidelines:
+    enabled: true
+    filePatterns:
+      - "CONTRIBUTING.md"
+      - "SECURITY.md"
+      - ".github/pull_request_template.md"
+  learnings:
+    scope: local
+  issues:
+    scope: local
+  pull_requests:
+    scope: local
+  jira:
+    usage: disabled
+  linear:
+    usage: disabled
