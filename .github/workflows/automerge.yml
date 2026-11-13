@@ -36,7 +36,8 @@ jobs:
         (github.event.pull_request.user.type == 'Bot' ||
          github.event.pull_request.user.login == github.repository_owner)))
     runs-on: ubuntu-24.04
-    timeout-minutes: 160
+    # La CI peut durer jusqu'à 120 minutes, puis jusqu'à 90 minutes d'attente de la revue.
+    timeout-minutes: 240
     # Au niveau de la tâche : une exécution dont la tâche est sautée (revue humaine) ne doit pas
     # annuler la boucle en cours.
     concurrency:
@@ -67,7 +68,8 @@ jobs:
           tete=$(gh pr view "$PR" --json headRefOid --jq .headRefOid)
           marque='<!-- fusion automatique : revue redemandée -->'
           attente=0
-          for _ in $(seq 1 300); do
+          # Jusqu'à la fin des contrôles (le délai de la tâche borne une CI sans fin), puis 90 minutes.
+          while :; do
             etat=$(gh pr view "$PR" --json state,headRefOid --jq '.state + " " + .headRefOid')
             # Fusionnée, fermée, ou un commit plus récent (sa propre exécution prend le relais).
             if [ "$etat" != "OPEN $tete" ]; then exit 0; fi
@@ -89,12 +91,14 @@ jobs:
                 exit 0
               fi
               # Pas de vraie revue 45 minutes après des contrôles verts : la redemander une seule
-              # fois pour cette PR, jamais plus, et continuer de l'attendre.
+              # fois pour cette PR, jamais plus (la commande doit être seule sur sa ligne), et
+              # l'attendre encore 45 minutes.
               attente=$((attente + 1))
               if [ "$attente" -eq 90 ] &&
                 ! gh api "repos/$GH_REPO/issues/$PR/comments" --paginate --jq '.[].body' | grep -qF "$marque"; then
-                gh pr comment "$PR" --body "@coderabbitai review $marque"
+                gh pr comment "$PR" --body "$(printf '@coderabbitai review\n\n%s' "$marque")"
               fi
+              if [ "$attente" -ge 180 ]; then exit 0; fi
             fi
             sleep 30
           done
