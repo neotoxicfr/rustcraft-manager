@@ -88,19 +88,22 @@ jobs:
                   [.check_runs[] | select(.app.slug == "coderabbitai" and .conclusion == "success"
                     and ((.output.summary // "") | contains("Review completed")))] | length' || echo 0)
                 # Remarques de CodeRabbit encore ouvertes (fils non résolus qu'il a lancés) ; une
-                # requête en échec compte pour une, pour ne jamais fusionner sur une erreur.
+                # requête en échec, ou plus de 100 fils qui en laissent de non lus, comptent pour une :
+                # une erreur ou une lecture partielle ne fusionne jamais.
                 ouvertes=$(gh api graphql -F owner="${GH_REPO%/*}" -F name="${GH_REPO#*/}" -F pr="$PR" -f query='
                   query($owner: String!, $name: String!, $pr: Int!) {
                     repository(owner: $owner, name: $name) {
                       pullRequest(number: $pr) {
                         reviewThreads(first: 100) {
+                          pageInfo { hasNextPage }
                           nodes { isResolved comments(first: 1) { nodes { author { login } } } }
                         }
                       }
                     }
-                  }' --jq '[.data.repository.pullRequest.reviewThreads.nodes[]
-                    | select((.isResolved | not) and .comments.nodes[0].author.login == "coderabbitai")]
-                    | length' || echo 1)
+                  }' --jq '.data.repository.pullRequest.reviewThreads
+                    | if .pageInfo.hasNextPage then 1 else [.nodes[]
+                      | select((.isResolved | not) and .comments.nodes[0].author.login == "coderabbitai")]
+                      | length end' || echo 1)
               fi
               if [ "$revues" -gt 0 ] && [ "$ouvertes" -eq 0 ]; then
                 gh pr merge "$PR" --merge --match-head-commit "$tete"
