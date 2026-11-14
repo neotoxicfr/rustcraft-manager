@@ -101,13 +101,18 @@ jobs:
                   gh api "repos/$GH_REPO/commits/$tete/check-runs?check_name=CodeRabbit" \
                     --jq '.check_runs[] | select(.app.slug == "coderabbitai") | .output.summary // ""' |
                   grep -qF "No files to review"; then
-                  anterieurs_lus=1
-                  for c in $(gh api "repos/$GH_REPO/pulls/$PR/commits" --paginate --jq '.[].sha'); do
+                  # Marquée lue seulement si toutes les lectures ont réussi : une lecture en échec
+                  # est retentée au passage suivant, jamais prise pour « aucune revue ».
+                  lecture_ok=1
+                  commits=$(gh api "repos/$GH_REPO/pulls/$PR/commits" --paginate --jq '.[].sha') || lecture_ok=0
+                  for c in $commits; do
                     n=$(gh api "repos/$GH_REPO/commits/$c/check-runs?check_name=CodeRabbit" --jq '
                       [.check_runs[] | select(.app.slug == "coderabbitai" and .conclusion == "success"
-                        and ((.output.summary // "") | contains("Review completed")))] | length' || echo 0)
+                        and ((.output.summary // "") | contains("Review completed")))] | length') ||
+                      { lecture_ok=0; continue; }
                     if [ "$n" -gt 0 ]; then relu=1; break; fi
                   done
+                  if [ "$lecture_ok" = 1 ]; then anterieurs_lus=1; fi
                 fi
                 revues=$relu
                 # Remarques de CodeRabbit encore ouvertes (fils non résolus qu'il a lancés) ; une
