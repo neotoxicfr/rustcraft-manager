@@ -5,7 +5,9 @@
 #   de chemins, quota, erreur) conclut « skipped », qui compte comme passé parmi les contrôles :
 #   l'état des contrôles seul ne suffit donc pas ; une revue sans remarque ne publie aucune revue de
 #   PR, on ne peut donc pas non plus compter les revues. Sans vraie revue, la PR reste ouverte et
-#   une revue est redemandée une seule fois, 45 minutes après des contrôles verts.
+#   une revue est redemandée une seule fois, 45 minutes après des contrôles verts. Chaque remarque
+#   de CodeRabbit doit aussi être résolue (corrigée, ou répondue et marquée résolue) : une seule
+#   remarque ouverte garde la PR ouverte.
 # Un contrôle en échec laisse la PR ouverte. Les mises à jour de sécurité de Dependabot visent
 # toujours main : elles sont déplacées sur dev.
 #
@@ -80,21 +82,40 @@ jobs:
             if [ "$controles" = echec ]; then exit 0; fi
             if [ "$controles" = vert ]; then
               revues=1
+              ouvertes=0
               if [ "$ROBOT" != true ]; then
                 revues=$(gh api "repos/$GH_REPO/commits/$tete/check-runs?check_name=CodeRabbit" --jq '
                   [.check_runs[] | select(.app.slug == "coderabbitai" and .conclusion == "success"
                     and ((.output.summary // "") | contains("Review completed")))] | length' || echo 0)
+                # Remarques de CodeRabbit encore ouvertes (fils non résolus qu'il a lancés) ; une
+                # requête en échec, ou plus de 100 fils qui en laissent de non lus, comptent pour une :
+                # une erreur ou une lecture partielle ne fusionne jamais.
+                ouvertes=$(gh api graphql -F owner="${GH_REPO%/*}" -F name="${GH_REPO#*/}" -F pr="$PR" -f query='
+                  query($owner: String!, $name: String!, $pr: Int!) {
+                    repository(owner: $owner, name: $name) {
+                      pullRequest(number: $pr) {
+                        reviewThreads(first: 100) {
+                          pageInfo { hasNextPage }
+                          nodes { isResolved comments(first: 1) { nodes { author { login } } } }
+                        }
+                      }
+                    }
+                  }' --jq '.data.repository.pullRequest.reviewThreads
+                    | if .pageInfo.hasNextPage then 1 else [.nodes[]
+                      | select((.isResolved | not) and .comments.nodes[0].author.login == "coderabbitai")]
+                      | length end' || echo 1)
               fi
-              if [ "$revues" -gt 0 ]; then
+              if [ "$revues" -gt 0 ] && [ "$ouvertes" -eq 0 ]; then
                 gh pr merge "$PR" --merge --match-head-commit "$tete"
                 gh workflow run dev-image.yml --ref dev
                 exit 0
               fi
               # Pas de vraie revue 45 minutes après des contrôles verts : la redemander une seule
               # fois pour cette PR, jamais plus (la commande doit être seule sur sa ligne), et
-              # l'attendre encore 45 minutes.
+              # l'attendre encore 45 minutes. Des remarques ouvertes attendent les mêmes 90 minutes
+              # que leurs fils soient résolus ; ensuite, un nouveau commit ou une relance prend le relais.
               attente=$((attente + 1))
-              if [ "$attente" -eq 90 ] &&
+              if [ "$revues" -eq 0 ] && [ "$attente" -eq 90 ] &&
                 ! gh api "repos/$GH_REPO/issues/$PR/comments" --paginate --jq '.[].body' | grep -qF "$marque"; then
                 gh pr comment "$PR" --body "$(printf '@coderabbitai review\n\n%s' "$marque")"
               fi
