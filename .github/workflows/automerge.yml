@@ -87,6 +87,19 @@ jobs:
                 revues=$(gh api "repos/$GH_REPO/commits/$tete/check-runs?check_name=CodeRabbit" --jq '
                   [.check_runs[] | select(.app.slug == "coderabbitai" and .conclusion == "success"
                     and ((.output.summary // "") | contains("Review completed")))] | length' || echo 0)
+                # Une tête qui ne fait qu'apporter dev est « Skipped - No files to review » : rien
+                # de neuf pour CodeRabbit, donc une vraie revue d'un commit antérieur de la PR vaut.
+                if [ "$revues" -eq 0 ] &&
+                  gh api "repos/$GH_REPO/commits/$tete/check-runs?check_name=CodeRabbit" \
+                    --jq '.check_runs[] | select(.app.slug == "coderabbitai") | .output.summary // ""' |
+                  grep -qF "No files to review"; then
+                  for c in $(gh api "repos/$GH_REPO/pulls/$PR/commits" --paginate --jq '.[].sha'); do
+                    n=$(gh api "repos/$GH_REPO/commits/$c/check-runs?check_name=CodeRabbit" --jq '
+                      [.check_runs[] | select(.app.slug == "coderabbitai" and .conclusion == "success"
+                        and ((.output.summary // "") | contains("Review completed")))] | length' || echo 0)
+                    if [ "$n" -gt 0 ]; then revues=1; break; fi
+                  done
+                fi
                 # Remarques de CodeRabbit encore ouvertes (fils non résolus qu'il a lancés) ; une
                 # requête en échec, ou plus de 100 fils qui en laissent de non lus, comptent pour une :
                 # une erreur ou une lecture partielle ne fusionne jamais.
