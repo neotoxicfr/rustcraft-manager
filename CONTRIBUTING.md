@@ -22,8 +22,9 @@ et agréable : chaque contribution est jugée sur la sécurité, la mesure et la
 
 Les PR visent la branche `dev` : chaque arrivée y publie l'image `ghcr.io/neotoxicfr/rustcraft-manager:dev`.
 Aucun envoi direct sur `dev`. Les PR des robots s'y fusionnent seules quand les contrôles obligatoires
-passent ; celles du mainteneur, quand en plus CodeRabbit a réellement relu le dernier commit
-(CodeRabbit ne relit pas Dependabot). Les mises à jour de sécurité de Dependabot, qui
+passent ; celles du mainteneur, quand en plus CodeRabbit a réellement relu le dernier commit et
+qu'aucune de ses remarques n'est encore ouverte (corrigée, ou répondue et marquée résolue).
+CodeRabbit ne relit pas Dependabot. Les mises à jour de sécurité de Dependabot, qui
 visent toujours `main`, sont déplacées sur `dev`. `main` ne reçoit que les releases (étiquettes
 `X.Y.Z` et `latest`).
 
