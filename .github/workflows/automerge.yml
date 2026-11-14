@@ -70,6 +70,8 @@ jobs:
           tete=$(gh pr view "$PR" --json headRefOid --jq .headRefOid)
           marque='<!-- fusion automatique : revue redemandée -->'
           attente=0
+          relu=0
+          anterieurs_lus=0
           # Jusqu'à la fin des contrôles (le délai de la tâche borne une CI sans fin), puis 90 minutes.
           while :; do
             etat=$(gh pr view "$PR" --json state,headRefOid --jq '.state + " " + .headRefOid')
@@ -84,22 +86,30 @@ jobs:
               revues=1
               ouvertes=0
               if [ "$ROBOT" != true ]; then
-                revues=$(gh api "repos/$GH_REPO/commits/$tete/check-runs?check_name=CodeRabbit" --jq '
-                  [.check_runs[] | select(.app.slug == "coderabbitai" and .conclusion == "success"
-                    and ((.output.summary // "") | contains("Review completed")))] | length' || echo 0)
+                # Une vraie revue, une fois vue, vaut pour toute l'exécution (une tête plus récente
+                # y met fin), et les commits antérieurs sont lus une seule fois (leurs check runs ne
+                # changent plus) : la boucle reste dans le quota de requêtes de GITHUB_TOKEN.
+                if [ "$relu" != 1 ]; then
+                  n=$(gh api "repos/$GH_REPO/commits/$tete/check-runs?check_name=CodeRabbit" --jq '
+                    [.check_runs[] | select(.app.slug == "coderabbitai" and .conclusion == "success"
+                      and ((.output.summary // "") | contains("Review completed")))] | length' || echo 0)
+                  if [ "$n" -gt 0 ]; then relu=1; fi
+                fi
                 # Une tête qui ne fait qu'apporter dev est « Skipped - No files to review » : rien
                 # de neuf pour CodeRabbit, donc une vraie revue d'un commit antérieur de la PR vaut.
-                if [ "$revues" -eq 0 ] &&
+                if [ "$relu" != 1 ] && [ "$anterieurs_lus" != 1 ] &&
                   gh api "repos/$GH_REPO/commits/$tete/check-runs?check_name=CodeRabbit" \
                     --jq '.check_runs[] | select(.app.slug == "coderabbitai") | .output.summary // ""' |
                   grep -qF "No files to review"; then
+                  anterieurs_lus=1
                   for c in $(gh api "repos/$GH_REPO/pulls/$PR/commits" --paginate --jq '.[].sha'); do
                     n=$(gh api "repos/$GH_REPO/commits/$c/check-runs?check_name=CodeRabbit" --jq '
                       [.check_runs[] | select(.app.slug == "coderabbitai" and .conclusion == "success"
                         and ((.output.summary // "") | contains("Review completed")))] | length' || echo 0)
-                    if [ "$n" -gt 0 ]; then revues=1; break; fi
+                    if [ "$n" -gt 0 ]; then relu=1; break; fi
                   done
                 fi
+                revues=$relu
                 # Remarques de CodeRabbit encore ouvertes (fils non résolus qu'il a lancés) ; une
                 # requête en échec, ou plus de 100 fils qui en laissent de non lus, comptent pour une :
                 # une erreur ou une lecture partielle ne fusionne jamais.
