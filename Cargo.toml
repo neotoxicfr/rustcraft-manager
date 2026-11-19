@@ -95,7 +95,7 @@ axum = { version = "0.8.9", default-features = false, features = ["http1", "json
 tokio = { version = "1.54", features = ["rt-multi-thread", "macros", "net", "signal", "sync", "time", "process", "io-util", "fs"] }
 rusqlite = { version = "0.43.0", features = ["bundled"] }
 argon2 = "0.6.0"
-qrcode = { version = "0.14.1", default-features = false, features = ["svg"] }
+qrcode = { version = "0.15.0", default-features = false, features = ["svg"] }
 toml = { version = "1.1.8", default-features = false, features = ["parse", "serde"] }
 ring = "0.17.14"
 base64 = "0.23.1"
