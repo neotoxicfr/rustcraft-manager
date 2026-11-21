@@ -39,7 +39,11 @@ cargo deny check
 step "cargo audit"
 # RUSTSEC-2023-0071 (`rsa`) et RUSTSEC-2026-0387 (`crypto-bigint`) : passkeys, vérification de
 # signatures seulement ; voir deny.toml.
-cargo audit --deny warnings --ignore RUSTSEC-2024-0436 --ignore RUSTSEC-2023-0071 --ignore RUSTSEC-2026-0387 --file Cargo.lock
+# RUSTSEC-2026-0543 (`chrono` n'est plus maintenu, aucune faille) : seulement dans Cargo.lock,
+# dépendance optionnelle de serde_with (webauthn-rs) jamais activée, donc jamais compilée
+# (`cargo tree -i chrono --target all -e all --all-features` n'affiche rien, cargo deny ne la
+# voit pas). À revoir si cette commande l'affiche un jour.
+cargo audit --deny warnings --ignore RUSTSEC-2024-0436 --ignore RUSTSEC-2023-0071 --ignore RUSTSEC-2026-0387 --ignore RUSTSEC-2026-0543 --file Cargo.lock
 # Interface : `paste` (macro de compilation de leptos) n'est plus maintenu, sans faille ; voir deny.toml.
 (cd web && cargo audit --deny warnings --ignore RUSTSEC-2024-0436 --file Cargo.lock)
 
